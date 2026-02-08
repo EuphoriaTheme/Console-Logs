@@ -1,3 +1,7 @@
+## Blueprint component slot map.
+## Values are component names (TSX files in `components/` without extension). Leave empty to not inject anything.
+## This addon injects `copyConsole` into `Server -> Terminal -> CommandRow`.
+
 Navigation:
   NavigationBar: 
     BeforeNavigation: ""
@@ -9,11 +13,12 @@ Navigation:
     AdditionalAccountItems: ""
     AfterSubNavigation: ""
   Routes:
-  # - { Name: "SupportDiscord", Path: "", Type: "account/server", Component: "supportDiscord", AdminOnly: "false" }
+    ## Example route injection (uncomment and adjust as needed):
+    ## - { Name: "SupportDiscord", Path: "/support", Type: "account/server", Component: "supportDiscord", AdminOnly: "false" }
 
 Dashboard:
-  BeforeContent: "" # beta-2024-08 and later
-  AfterContent: "" # beta-2024-08 and later
+  BeforeContent: ""
+  AfterContent: ""
   ServerRow:
     BeforeEntryName: ""
     AfterEntryName: ""

@@ -1,3 +1,7 @@
+## Blueprint addon manifest for Console Logs.
+## `identifier` should be treated as immutable after release (it is used for install/remove and lookups).
+## `target` should match the Blueprint release this addon is tested against.
+
 info:
   name: "Console Logs"
   identifier: "consolelogs"

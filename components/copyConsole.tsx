@@ -1,65 +1,83 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ServerContext } from '@/state/server';
 import stripAnsi from 'strip-ansi';
 import { SocketEvent } from '@/components/server/events';
-import CopyOnClick from '@/components/elements/CopyOnClick'; // Ensure this path is correct
+import CopyOnClick from '@/components/elements/CopyOnClick';
 
-const copyConsole: React.FC = () => {
+const MAX_BUFFERED_LINES = 5000;
+
+const containerStyle: React.CSSProperties = {
+    fontSize: '15px',
+    justifyContent: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    marginLeft: '1.5%',
+    marginRight: '1.5%',
+};
+
+const iconStyle: React.CSSProperties = {
+    fontSize: '15px',
+    justifyContent: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+};
+
+const tooltipStyle: React.CSSProperties = {
+    position: 'absolute',
+    right: '3.5%',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: '#ffffff',
+    padding: '5px 10px',
+    borderRadius: '5px',
+    whiteSpace: 'nowrap',
+    fontSize: '12px',
+    zIndex: 99999,
+    opacity: 1,
+    transition: 'opacity 0.2s ease-in-out',
+};
+
+/**
+ * Blueprint component injected into the Pterodactyl server terminal "CommandRow".
+ *
+ * We keep a rolling in-memory buffer of recent CONSOLE_OUTPUT lines so copying stays fast and we
+ * don't accumulate unbounded memory on long-running servers.
+ */
+const CopyConsole: React.FC = () => {
     const [logs, setLogs] = useState<string[]>([]);
     const { connected, instance } = ServerContext.useStoreState((state) => state.socket);
-    const [isTooltipVisible, setTooltipVisible] = useState(false); // State to manage tooltip visibility
+    const [isTooltipVisible, setTooltipVisible] = useState(false);
 
-    // Function to handle incoming logs
-    const addLog = (data: string) => {
-        setLogs((prevLogs) => [...prevLogs, data.startsWith('>') ? data.substring(1) : data]);
-    };
+    const addLog = useCallback((data: string) => {
+        const line = data.startsWith('>') ? data.substring(1) : data;
 
-    // UseEffect to manage log listening
+        setLogs((prevLogs) => {
+            const next = [...prevLogs, line];
+            return next.length > MAX_BUFFERED_LINES ? next.slice(-MAX_BUFFERED_LINES) : next;
+        });
+    }, []);
+
     useEffect(() => {
         if (!connected || !instance) return;
 
-        // Listen for console output logs
         instance.addListener(SocketEvent.CONSOLE_OUTPUT, addLog);
+        return () => instance.removeListener(SocketEvent.CONSOLE_OUTPUT, addLog);
+    }, [addLog, connected, instance]);
 
-        return () => {
-            // Cleanup listener on unmount
-            instance.removeListener(SocketEvent.CONSOLE_OUTPUT, addLog);
-        };
-    }, [connected, instance]);
-
-    // Prepare the logs for copying
-    const logData = stripAnsi(logs.join('\n')); // Strip ANSI codes from logs
+    const copyText = useMemo(() => stripAnsi(logs.join('\n')), [logs]);
 
     return (
-        <div style={{ fontSize: '15px', justifyContent: 'center', display: 'flex', flexDirection: 'column', marginLeft: '1.5%', marginRight: '1.5%' }}>
-            <CopyOnClick text={logData}>
+        <div style={containerStyle}>
+            <CopyOnClick text={copyText}>
                 <i
-                    className="fa-solid fa-copy text-white cursor-pointer" // Font Awesome icon
-                    onMouseEnter={() => setTooltipVisible(true)} // Show tooltip on mouse enter
-                    onMouseLeave={() => setTooltipVisible(false)} // Hide tooltip on mouse leave
-                    style={{ fontSize: '15px', justifyContent: 'center', display: 'flex', flexDirection: 'column' }} // Adjust size as necessary
-                ></i>
-
+                    className="fa-solid fa-copy text-white cursor-pointer"
+                    onMouseEnter={() => setTooltipVisible(true)}
+                    onMouseLeave={() => setTooltipVisible(false)}
+                    style={iconStyle}
+                />
             </CopyOnClick>
-            {isTooltipVisible && ( // Conditional rendering for tooltip
-                <div style={{
-                    position: 'absolute',
-                    right: '3.5%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    color: '#ffffff',
-                    padding: '5px 10px',
-                    borderRadius: '5px',
-                    whiteSpace: 'nowrap',
-                    fontSize: '12px',
-                    zIndex: 99999,
-                    opacity: 1,
-                    transition: 'opacity 0.2s ease-in-out',
-                }}>
-                    Copy console log
-                </div>
-            )}
+            {isTooltipVisible && <div style={tooltipStyle}>Copy console log</div>}
         </div>
     );
 };
 
-export default copyConsole;
+export default CopyConsole;
