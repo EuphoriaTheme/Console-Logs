@@ -8,7 +8,7 @@ Adds a one-click "Copy console log" button to the Pterodactyl server terminal wh
 
 ## Compatibility
 - Blueprint Framework on Pterodactyl Panel
-- Target: `beta-2024-08` (see `conf.yml`)
+- Target: `beta-2026-01` (see `conf.yml`)
 
 ## Installation / Development Guides
 Follow the official Blueprint guides for installing addons and developing components:
